@@ -1,0 +1,514 @@
+<title>Portfolio Projector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two-column workbench. Left: holdings + assumptions (the inputs). Right: outcome summary, fan chart, milestone table. Stacks on phones. */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #111722;
+  --ink-2: #4a5263;
+  --ink-3: #7a8293;
+  --line: #e1e4ea;
+  --line-2: #eef0f4;
+  --accent: #1c5cab;
+  --accent-ink: #ffffff;
+  --band-outer: #cde2fb;
+  --band-inner: #86b6ef;
+  --median: #1c5cab;
+  --good: #0f7a3d;
+  --bad: #b3261e;
+  --input-bg: #f9fafc;
+  --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1219; --panel: #161b24; --ink: #eef1f6; --ink-2: #b5bccb; --ink-3: #848c9c;
+    --line: #2a3140; --line-2: #1f2531; --accent: #5598e7; --accent-ink: #0b1220;
+    --band-outer: #1d3557; --band-inner: #2f5f99; --median: #86b6ef;
+    --good: #4cc27f; --bad: #f2827b; --input-bg: #11161e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1219; --panel: #161b24; --ink: #eef1f6; --ink-2: #b5bccb; --ink-3: #848c9c;
+  --line: #2a3140; --line-2: #1f2531; --accent: #5598e7; --accent-ink: #0b1220;
+  --band-outer: #1d3557; --band-inner: #2f5f99; --median: #86b6ef;
+  --good: #4cc27f; --bad: #f2827b; --input-bg: #11161e; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 24px; }
+header { display: grid; gap: 6px; }
+h1 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.lede { color: var(--ink-2); margin: 0; max-width: 68ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); margin: 0; }
+.col { display: grid; gap: 24px; min-width: 0; }
+
+/* holdings */
+.holdings { display: grid; gap: 8px; }
+.hrow { display: grid; grid-template-columns: 1.1fr 1.3fr 0.8fr 0.8fr 28px; gap: 6px; align-items: center; }
+.hhead { font-size: 0.7rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+input, select { font: inherit; color: var(--ink); background: var(--input-bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0; }
+input[type="number"] { font-family: var(--font-data); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+input.tick { text-transform: uppercase; font-weight: 600; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { font: inherit; cursor: pointer; border-radius: 6px; }
+.icon-btn { background: none; border: 1px solid transparent; color: var(--ink-3); width: 28px; height: 30px; font-size: 1.1rem; line-height: 1; }
+.icon-btn:hover { color: var(--bad); border-color: var(--line); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 12px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.total-line { display: flex; justify-content: space-between; color: var(--ink-2); font-size: 0.85rem; border-top: 1px solid var(--line-2); padding-top: 8px; }
+.total-line b { font-family: var(--font-data); color: var(--ink); font-weight: 500; }
+.example-tag { display: inline-block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: var(--line-2); color: var(--ink-2); padding: 2px 8px; border-radius: 99px; }
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 0.78rem; color: var(--ink-2); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; color: var(--ink-2); }
+.check input { width: auto; }
+.note { font-size: 0.78rem; color: var(--ink-3); margin: 0; }
+
+/* summary */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { display: grid; gap: 2px; padding: 4px 0; }
+.tile .k { font-size: 0.75rem; color: var(--ink-2); }
+.tile .v { font-family: var(--font-data); font-size: 1.35rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.tile .s { font-size: 0.75rem; color: var(--ink-3); font-family: var(--font-data); }
+.hero-v { color: var(--accent); }
+
+/* chart */
+.chart-wrap { position: relative; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--ink-3); font-family: var(--font-data); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.78rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.line { height: 2px; }
+.sw.dash { height: 0; border-top: 2px dashed var(--ink-3); background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.78rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 170px; }
+.tip .t { font-weight: 600; margin-bottom: 4px; }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.tip .r b { color: var(--ink); font-weight: 500; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td.med { color: var(--ink); font-weight: 500; }
+td.dim { color: var(--ink-3); }
+
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 64px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 0.85rem; }
+.bar .n { font-weight: 600; }
+.bar .track { height: 10px; background: var(--line-2); border-radius: 0 4px 4px 0; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.bar .val { font-family: var(--font-data); text-align: right; font-variant-numeric: tabular-nums; }
+.bar .sub { grid-column: 2 / 4; font-size: 0.72rem; color: var(--ink-3); margin-top: -6px; }
+
+footer { color: var(--ink-3); font-size: 0.78rem; max-width: 80ch; display: grid; gap: 6px; }
+footer p { margin: 0; }
+@media (max-width: 480px) {
+  .wrap { padding-inline: 16px; }
+  .hrow { grid-template-columns: 1fr 1.2fr 0.8fr 0.8fr 26px; gap: 4px; }
+  input, select { padding: 6px 5px; }
+  .fields { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Portfolio Projector</h1>
+    <p class="lede">Enter your stocks and ETFs, then see the range of values your portfolio could reach. Each run simulates 2,000 possible market paths month by month, using an expected return and volatility for each holding.</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-hold">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 id="h-hold">Holdings</h2>
+          <span class="example-tag" id="exampleTag">Example portfolio</span>
+        </div>
+        <div class="holdings">
+          <div class="hrow hhead"><span>Ticker</span><span>Value ($)</span><span>Return %</span><span>Vol %</span><span></span></div>
+          <div id="rows" class="holdings"></div>
+        </div>
+        <div class="total-line"><span>Total invested today</span><b id="totalNow">$0</b></div>
+        <div class="btn-row">
+          <button class="btn" id="addRow" type="button">Add holding</button>
+          <button class="btn" id="resetEx" type="button">Load example</button>
+        </div>
+        <p class="note">Typing a known ticker (VOO, QQQ, VXUS, BND, AAPL, NVDA and about 30 others) fills in default assumptions. Return is the expected average annual return; Vol is annual volatility (how much it swings). Edit either one.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="h-plan">
+        <h2 id="h-plan">Plan</h2>
+        <div class="fields">
+          <div class="field"><label for="years">Years to project</label><input id="years" type="number" min="1" max="50" value="20"></div>
+          <div class="field"><label for="monthly">Monthly contribution ($)</label><input id="monthly" type="number" min="0" step="50" value="500"></div>
+          <div class="field"><label for="goal">Goal ($, optional)</label><input id="goal" type="number" min="0" step="1000" value="250000"></div>
+          <div class="field"><label for="infl">Inflation % / yr</label><input id="infl" type="number" min="0" max="15" step="0.1" value="2.5"></div>
+        </div>
+        <label class="check"><input id="real" type="checkbox" checked> Show values in today's dollars (contributions rise with inflation)</label>
+        <label class="check"><input id="rebal" type="checkbox" checked> Rebalance back to starting weights once a year</label>
+        <label class="check"><input id="fees" type="checkbox"> Subtract 0.2% / yr for fund fees</label>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="h-out">
+        <h2 id="h-out">After <span id="yrsLbl">20</span> years</h2>
+        <div class="tiles">
+          <div class="tile"><span class="k">Typical outcome (median)</span><span class="v hero-v" id="tMed">–</span><span class="s" id="tMedSub"></span></div>
+          <div class="tile"><span class="k">Likely range (10th–90th)</span><span class="v" id="tRange">–</span><span class="s">8 in 10 paths land here</span></div>
+          <div class="tile"><span class="k">You put in</span><span class="v" id="tIn">–</span><span class="s" id="tInSub"></span></div>
+          <div class="tile"><span class="k" id="tGoalK">Chance of reaching goal</span><span class="v" id="tGoal">–</span><span class="s" id="tLoss"></span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-chart">
+        <h2 id="h-chart">Projected portfolio value</h2>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--band-outer)"></i>10th–90th percentile</span>
+          <span><i class="sw" style="background:var(--band-inner)"></i>25th–75th percentile</span>
+          <span><i class="sw line" style="background:var(--median)"></i>Median</span>
+          <span><i class="sw dash"></i>Total contributed</span>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <svg class="chart" id="chart" viewBox="0 0 760 340" role="img" aria-label="Fan chart of projected portfolio value by year"></svg>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-tbl">
+        <h2 id="h-tbl">Milestones</h2>
+        <div class="tbl-wrap"><table id="tbl"></table></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-by">
+        <h2 id="h-by">Median ending value by holding</h2>
+        <div class="bars" id="bars"></div>
+        <p class="note" id="barsNote"></p>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p><b>How this works.</b> Each holding grows by a random monthly return drawn from its expected return and volatility. Holdings move together through a shared market factor, so a crash hits stocks at the same time, while bonds and gold move more independently. Contributions are split by your starting weights. Ending values are summarized as percentiles across all simulated paths.</p>
+    <p><b>Limits.</b> The default assumptions are rough long-run estimates, not predictions, and real returns can fall outside the shaded range. Dividends are assumed reinvested. Taxes are ignored. This is an educational tool, not financial advice.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // Long-run assumptions: [expected annual return %, annual volatility %, correlation with US stock market]
+  const PRESETS = {
+    VOO: [8, 16, 0.99], SPY: [8, 16, 0.99], IVV: [8, 16, 0.99], VTI: [8, 16.5, 1], SCHB: [8, 16.5, 1], ITOT: [8, 16.5, 1],
+    QQQ: [9, 22, 0.9], QQQM: [9, 22, 0.9], VUG: [8.5, 19, 0.95], VTV: [7.5, 15, 0.9], SCHD: [7.5, 15, 0.88],
+    VIG: [7.5, 14.5, 0.93], VYM: [7.5, 15, 0.88], IWM: [8.5, 21, 0.85], VB: [8.5, 20, 0.88], VO: [8, 18, 0.93],
+    VXUS: [7.5, 17, 0.85], VEA: [7.5, 17, 0.85], IXUS: [7.5, 17, 0.85], EFA: [7.5, 17, 0.85], VWO: [8, 21, 0.72], IEMG: [8, 21, 0.72],
+    VT: [7.8, 16, 0.96], BND: [4.5, 6, 0.15], AGG: [4.5, 6, 0.15], BNDX: [4, 5, 0.1], TLT: [4.5, 14, -0.1], SHY: [4, 2, 0],
+    SGOV: [4, 0.5, 0], BIL: [4, 0.5, 0], TIP: [4.2, 6, 0.2], VNQ: [7, 20, 0.75], GLD: [5, 15, 0.05], IAU: [5, 15, 0.05],
+    ARKK: [9, 45, 0.75], AAPL: [9, 28, 0.7], MSFT: [9, 25, 0.75], NVDA: [11, 50, 0.62], AMZN: [9.5, 32, 0.68], GOOGL: [9, 29, 0.68],
+    GOOG: [9, 29, 0.68], META: [9.5, 38, 0.62], TSLA: [10, 58, 0.5], BRK_B: [8, 18, 0.8], JPM: [8.5, 25, 0.7], JNJ: [6.5, 16, 0.5],
+    KO: [6.5, 16, 0.5], V: [8.5, 22, 0.72], COST: [8.5, 22, 0.6], AMD: [10.5, 52, 0.55]
+  };
+  const STOCK_DEFAULT = [8, 30, 0.6];
+  const EXAMPLE = [
+    { t: "VOO", v: 12000 }, { t: "QQQ", v: 5000 }, { t: "VXUS", v: 4000 }, { t: "BND", v: 3000 }, { t: "AAPL", v: 2000 }, { t: "NVDA", v: 1500 }
+  ];
+  const SIMS = 2000;
+  const STORE = "portfolio-projector:v1";
+
+  const $ = (id) => document.getElementById(id);
+  const rowsEl = $("rows");
+  let isExample = true;
+
+  function preset(t) { return PRESETS[t.toUpperCase().replace(".", "_").replace("-", "_")] || null; }
+  function holdingFrom(t, v) {
+    const p = preset(t) || STOCK_DEFAULT;
+    return { t, v, r: p[0], s: p[1], c: p[2] };
+  }
+
+  function rowHTML(h, i) {
+    return `<div class="hrow" data-i="${i}">
+      <input class="tick" id="t${i}" aria-label="Ticker" value="${h.t}" maxlength="8">
+      <input type="number" id="v${i}" aria-label="Value in dollars" min="0" step="100" value="${h.v}">
+      <input type="number" id="r${i}" aria-label="Expected annual return percent" step="0.5" value="${h.r}">
+      <input type="number" id="s${i}" aria-label="Annual volatility percent" min="0" step="1" value="${h.s}">
+      <button class="icon-btn" type="button" aria-label="Remove ${h.t}" data-del="${i}">×</button>
+    </div>`;
+  }
+
+  let holdings = [];
+  function renderRows() { rowsEl.innerHTML = holdings.map(rowHTML).join(""); }
+
+  function readRows() {
+    holdings.forEach((h, i) => {
+      h.t = ($("t" + i).value || "").trim().toUpperCase();
+      h.v = Math.max(0, +$("v" + i).value || 0);
+      h.r = +$("r" + i).value || 0;
+      h.s = Math.max(0, +$("s" + i).value || 0);
+    });
+  }
+
+  rowsEl.addEventListener("change", (e) => {
+    const m = e.target.id.match(/^t(\d+)$/);
+    if (m) {
+      const i = +m[1];
+      const p = preset(e.target.value) || STOCK_DEFAULT;
+      $("r" + i).value = p[0]; $("s" + i).value = p[1];
+      holdings[i].c = p[2];
+    }
+    markEdited(); run();
+  });
+  rowsEl.addEventListener("click", (e) => {
+    const d = e.target.closest("[data-del]");
+    if (!d) return;
+    readRows();
+    holdings.splice(+d.dataset.del, 1);
+    renderRows(); markEdited(); run();
+  });
+  $("addRow").addEventListener("click", () => {
+    readRows(); holdings.push(holdingFrom("VTI", 1000)); renderRows(); markEdited(); run();
+  });
+  $("resetEx").addEventListener("click", () => {
+    holdings = EXAMPLE.map((e) => holdingFrom(e.t, e.v)); isExample = true; $("exampleTag").hidden = false;
+    renderRows(); save(); run();
+  });
+  ["years", "monthly", "goal", "infl", "real", "rebal", "fees"].forEach((id) => $(id).addEventListener("change", () => { save(); run(); }));
+
+  function markEdited() { isExample = false; $("exampleTag").hidden = true; save(); }
+
+  function save() {
+    try {
+      readRows();
+      localStorage.setItem(STORE, JSON.stringify({
+        holdings, isExample, years: $("years").value, monthly: $("monthly").value, goal: $("goal").value,
+        infl: $("infl").value, real: $("real").checked, rebal: $("rebal").checked, fees: $("fees").checked
+      }));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE) || "null");
+      if (!s || !Array.isArray(s.holdings) || !s.holdings.length) return false;
+      holdings = s.holdings; isExample = !!s.isExample;
+      ["years", "monthly", "goal", "infl"].forEach((k) => { if (s[k] != null) $(k).value = s[k]; });
+      ["real", "rebal", "fees"].forEach((k) => { if (s[k] != null) $(k).checked = s[k]; });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Seeded RNG so results are stable between edits
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gaussFactory(rand) {
+    let spare = null;
+    return function () {
+      if (spare !== null) { const s = spare; spare = null; return s; }
+      let u, v, q;
+      do { u = rand() * 2 - 1; v = rand() * 2 - 1; q = u * u + v * v; } while (q === 0 || q >= 1);
+      const m = Math.sqrt(-2 * Math.log(q) / q);
+      spare = v * m; return u * m;
+    };
+  }
+
+  function simulate(cfg) {
+    const H = cfg.holdings, n = H.length, years = cfg.years, months = years * 12;
+    const total0 = H.reduce((a, h) => a + h.v, 0);
+    const w = H.map((h) => total0 > 0 ? h.v / total0 : 1 / n);
+    const fee = cfg.fees ? 0.002 : 0;
+    const drift = H.map((h) => (Math.log(1 + h.r / 100) - fee - (h.s / 100) ** 2 / 2) / 12);
+    const vol = H.map((h) => h.s / 100 / Math.sqrt(12));
+    const a = H.map((h) => Math.max(-1, Math.min(1, h.c ?? 0.6)));
+    const b = a.map((x) => Math.sqrt(1 - x * x));
+    const gauss = gaussFactory(mulberry32(20261006));
+    const byYear = Array.from({ length: years + 1 }, () => new Float64Array(SIMS));
+    const endByAsset = H.map(() => new Float64Array(SIMS));
+    const vals = new Float64Array(n);
+    // In today's-dollar mode, contributions rise with inflation so they stay constant in real terms
+    const contribGrow = new Float64Array(months + 1);
+    let contribNominal = total0;
+    for (let m = 1; m <= months; m++) { contribGrow[m] = cfg.real ? Math.pow(1 + cfg.infl / 100, m / 12) : 1; contribNominal += cfg.monthly * contribGrow[m]; }
+    for (let s = 0; s < SIMS; s++) {
+      for (let i = 0; i < n; i++) vals[i] = H[i].v;
+      byYear[0][s] = total0;
+      for (let m = 1; m <= months; m++) {
+        const M = gauss();
+        const c = cfg.monthly * contribGrow[m];
+        for (let i = 0; i < n; i++) {
+          const z = a[i] * M + b[i] * gauss();
+          vals[i] = vals[i] * Math.exp(drift[i] + vol[i] * z) + c * w[i];
+        }
+        if (m % 12 === 0) {
+          let tot = 0; for (let i = 0; i < n; i++) tot += vals[i];
+          if (cfg.rebal) for (let i = 0; i < n; i++) vals[i] = tot * w[i];
+          byYear[m / 12][s] = tot;
+        }
+      }
+      for (let i = 0; i < n; i++) endByAsset[i][s] = vals[i];
+    }
+    const pct = (arr, p) => arr[Math.min(arr.length - 1, Math.floor(p * arr.length))];
+    const defl = (y) => cfg.real ? Math.pow(1 + cfg.infl / 100, y) : 1;
+    const series = byYear.map((arr, y) => {
+      const sorted = Float64Array.from(arr).sort(), d = defl(y);
+      return { y, p10: pct(sorted, 0.1) / d, p25: pct(sorted, 0.25) / d, p50: pct(sorted, 0.5) / d, p75: pct(sorted, 0.75) / d, p90: pct(sorted, 0.9) / d,
+        contrib: total0 + cfg.monthly * 12 * y, raw: arr, d };
+    });
+    const last = series[years];
+    const contribTotal = total0 + cfg.monthly * months;
+    let hitGoal = 0, belowIn = 0;
+    for (let s = 0; s < SIMS; s++) {
+      const v = last.raw[s] / last.d;
+      if (cfg.goal > 0 && v >= cfg.goal) hitGoal++;
+      if (last.raw[s] < contribNominal) belowIn++;
+    }
+    const assetMed = endByAsset.map((arr) => pct(Float64Array.from(arr).sort(), 0.5) / last.d);
+    const assetCAGR = H.map((h, i) => drift[i] * 12);
+    return { series, total0, contribTotal, hitGoal: hitGoal / SIMS, belowIn: belowIn / SIMS, assetMed, assetCAGR, w };
+  }
+
+  const fmt = (v) => {
+    const a = Math.abs(v);
+    if (a >= 1e6) return "$" + (v / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
+    if (a >= 1e4) return "$" + Math.round(v / 1e3) + "k";
+    if (a >= 1e3) return "$" + (v / 1e3).toFixed(1) + "k";
+    return "$" + Math.round(v);
+  };
+  const fmtFull = (v) => "$" + Math.round(v).toLocaleString("en-US");
+  const pctf = (x) => (x * 100 < 1 && x > 0 ? "<1" : Math.round(x * 100)) + "%";
+
+  function niceMax(v) {
+    const e = Math.pow(10, Math.floor(Math.log10(v))), f = v / e;
+    const n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+    return n * e;
+  }
+
+  let lastRes = null, lastCfg = null, resizeTimer = 0;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => lastRes && drawChart(lastRes, lastCfg), 120); });
+  function drawChart(res, cfg) {
+    const svg = $("chart"), W = Math.max(300, Math.round($("chartWrap").clientWidth || 760)), Hh = W < 520 ? 260 : 340, L = 58, R = 16, T = 12, B = 30;
+    svg.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
+    const S = res.series, years = cfg.years;
+    const yMax = niceMax(Math.max(...S.map((p) => p.p90), cfg.goal > 0 ? cfg.goal : 0, 1) * 1.02);
+    const x = (y) => L + (y / years) * (W - L - R);
+    const yy = (v) => T + (1 - v / yMax) * (Hh - T - B);
+    const area = (lo, hi) => "M" + S.map((p) => x(p.y) + "," + yy(p[hi])).join("L") + "L" + S.slice().reverse().map((p) => x(p.y) + "," + yy(p[lo])).join("L") + "Z";
+    const line = (k) => "M" + S.map((p) => x(p.y) + "," + yy(p[k])).join("L");
+    let g = "";
+    const ticks = 5;
+    for (let i = 0; i <= ticks; i++) {
+      const v = (yMax / ticks) * i, py = yy(v);
+      g += `<line x1="${L}" x2="${W - R}" y1="${py}" y2="${py}" stroke="var(--line-2)" stroke-width="1"/>`;
+      g += `<text x="${L - 8}" y="${py + 4}" text-anchor="end">${fmt(v)}</text>`;
+    }
+    const maxTicks = Math.max(3, Math.floor((W - L - R) / 60));
+    const step = [1, 2, 5, 10].find((st) => years / st <= maxTicks) || 10;
+    for (let y = 0; y <= years; y += step) g += `<text x="${x(y)}" y="${Hh - 8}" text-anchor="middle">${y === 0 ? "Now" : "Yr " + y}</text>`;
+    g += `<path d="${area("p10", "p90")}" fill="var(--band-outer)"/>`;
+    g += `<path d="${area("p25", "p75")}" fill="var(--band-inner)"/>`;
+    g += `<path d="${line("contrib")}" fill="none" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    g += `<path d="${line("p50")}" fill="none" stroke="var(--median)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    if (cfg.goal > 0 && cfg.goal <= yMax) {
+      g += `<line x1="${L}" x2="${W - R}" y1="${yy(cfg.goal)}" y2="${yy(cfg.goal)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="2 3"/>`;
+      g += `<text x="${L + 6}" y="${yy(cfg.goal) - 5}" style="fill:var(--good)">Goal ${fmt(cfg.goal)}</text>`;
+    }
+    const e = S[years];
+    g += `<circle cx="${x(years)}" cy="${yy(e.p50)}" r="4.5" fill="var(--median)" stroke="var(--panel)" stroke-width="2"/>`;
+    g += `<line id="xh" x1="0" x2="0" y1="${T}" y2="${Hh - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>`;
+    g += `<circle id="xd" r="4" fill="var(--median)" stroke="var(--panel)" stroke-width="2" visibility="hidden"/>`;
+    g += `<rect x="${L}" y="${T}" width="${W - L - R}" height="${Hh - T - B}" fill="transparent" id="hit"/>`;
+    svg.innerHTML = g;
+
+    const tip = $("tip"), wrap = $("chartWrap");
+    const hit = $("hit");
+    function show(evt) {
+      const rect = svg.getBoundingClientRect();
+      const px = (evt.clientX - rect.left) * (W / rect.width);
+      const yr = Math.max(0, Math.min(years, Math.round(((px - L) / (W - L - R)) * years)));
+      const p = S[yr];
+      const xh = $("xh"), xd = $("xd");
+      xh.setAttribute("x1", x(yr)); xh.setAttribute("x2", x(yr)); xh.setAttribute("visibility", "visible");
+      xd.setAttribute("cx", x(yr)); xd.setAttribute("cy", yy(p.p50)); xd.setAttribute("visibility", "visible");
+      tip.innerHTML = `<div class="t">${yr === 0 ? "Today" : "Year " + yr}</div>
+        <div class="r"><span>90th</span><b>${fmtFull(p.p90)}</b></div>
+        <div class="r"><span>75th</span><b>${fmtFull(p.p75)}</b></div>
+        <div class="r"><span>Median</span><b>${fmtFull(p.p50)}</b></div>
+        <div class="r"><span>25th</span><b>${fmtFull(p.p25)}</b></div>
+        <div class="r"><span>10th</span><b>${fmtFull(p.p10)}</b></div>
+        <div class="r"><span>Put in</span><b>${fmtFull(p.contrib)}</b></div>`;
+      tip.hidden = false;
+      const sx = x(yr) * (rect.width / W), wr = wrap.getBoundingClientRect();
+      const tw = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(wr.width - tw, sx + (sx > wr.width / 2 ? -tw - 14 : 14))) + "px";
+      tip.style.top = "8px";
+    }
+    function hide() { tip.hidden = true; ["xh", "xd"].forEach((id) => $(id) && $(id).setAttribute("visibility", "hidden")); }
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("pointerdown", show);
+    hit.addEventListener("pointerleave", hide);
+  }
+
+  function run() {
+    readRows();
+    const active = holdings.filter((h) => h.v > 0 || holdings.length === 1);
+    const cfg = {
+      holdings: active.length ? active : [holdingFrom("VTI", 0)],
+      years: Math.max(1, Math.min(50, Math.round(+$("years").value || 20))),
+      monthly: Math.max(0, +$("monthly").value || 0),
+      goal: Math.max(0, +$("goal").value || 0),
+      infl: Math.max(0, +$("infl").value || 0),
+      real: $("real").checked, rebal: $("rebal").checked, fees: $("fees").checked
+    };
+    const res = simulate(cfg);
+    lastRes = res; lastCfg = cfg;
+    const e = res.series[cfg.years];
+    $("totalNow").textContent = fmtFull(res.total0);
+    $("yrsLbl").textContent = cfg.years;
+    $("tMed").textContent = fmt(e.p50);
+    const cagr = res.total0 > 0 && cfg.monthly === 0 ? Math.pow(e.p50 / res.total0, 1 / cfg.years) - 1 : null;
+    $("tMedSub").textContent = cagr !== null ? (cagr * 100).toFixed(1) + "% / yr" : (cfg.real ? "in today's dollars" : "nominal dollars");
+    $("tRange").textContent = fmt(e.p10) + "–" + fmt(e.p90);
+    $("tIn").textContent = fmt(res.contribTotal);
+    $("tInSub").textContent = fmt(res.total0) + " now + " + fmt(cfg.monthly) + "/mo";
+    if (cfg.goal > 0) { $("tGoalK").textContent = "Chance of reaching " + fmt(cfg.goal); $("tGoal").textContent = pctf(res.hitGoal); }
+    else { $("tGoalK").textContent = "Chance of reaching goal"; $("tGoal").textContent = "–"; }
+    $("tLoss").textContent = pctf(res.belowIn) + " chance of ending below what you put in";
+
+    drawChart(res, cfg);
+
+    const marks = [1, 3, 5, 10, 15, 20, 25, 30, 40, 50].filter((y) => y < cfg.years);
+    marks.push(cfg.years);
+    let t = `<thead><tr><th>Year</th><th>Put in</th><th>10th</th><th>25th</th><th>Median</th><th>75th</th><th>90th</th></tr></thead><tbody>`;
+    for (const y of marks) {
+      const p = res.series[y];
+      t += `<tr><td>Year ${y}</td><td class="dim">${fmtFull(p.contrib)}</td><td>${fmtFull(p.p10)}</td><td>${fmtFull(p.p25)}</td><td class="med">${fmtFull(p.p50)}</td><td>${fmtFull(p.p75)}</td><td>${fmtFull(p.p90)}</td></tr>`;
+    }
+    $("tbl").innerHTML = t + "</tbody>";
+
+    const H = cfg.holdings, maxV = Math.max(...res.assetMed, 1);
+    $("bars").innerHTML = H.map((h, i) => `<div class="bar"><span class="n">${h.t || "—"}</span><span class="track"><span class="fill" style="width:${(res.assetMed[i] / maxV) * 100}%; display:block"></span></span><span class="val">${fmtFull(res.assetMed[i])}</span>
+      <span class="sub">${(res.w[i] * 100).toFixed(0)}% of portfolio · typical growth ${(res.assetCAGR[i] * 100).toFixed(1)}% / yr after volatility drag</span></div>`).join("");
+    $("barsNote").textContent = cfg.rebal
+      ? "With yearly rebalancing, each holding stays near its starting weight, so these bars track your weights. Turn rebalancing off to see which holdings would dominate if left alone."
+      : "Without rebalancing, high-growth holdings take over a larger share over time. Medians are computed per holding, so they do not add up exactly to the portfolio median.";
+  }
+
+  if (!load()) holdings = EXAMPLE.map((e) => holdingFrom(e.t, e.v));
+  $("exampleTag").hidden = !isExample;
+  renderRows();
+  run();
+})();
+</script>
